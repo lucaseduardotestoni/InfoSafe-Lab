@@ -1,0 +1,15 @@
+{
+  "name": "infosafe-lab-backend",
+  "version": "1.0.0",
+  "description": "Backend do projeto InfoSafe Lab",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "Lucas Testoni",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^5.1.0"
+  }
+}
