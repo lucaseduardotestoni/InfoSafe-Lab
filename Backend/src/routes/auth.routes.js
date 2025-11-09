@@ -4,6 +4,13 @@ const auth = require("../middleware/auth");
 
 router.post("/register", register);
 router.post("/login", login);
-router.get("/me", auth, me);
+router.get("/me", auth, (req, res) => {
+  res.json({
+    id: req.user.id,
+    email: req.user.email,
+    name: req.user.name,
+    role: req.user.role
+  });
+});
 
 module.exports = router;

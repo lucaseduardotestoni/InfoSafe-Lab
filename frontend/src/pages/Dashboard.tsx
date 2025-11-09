@@ -25,6 +25,7 @@ const Dashboard: React.FC = () => {
   const [recentActions, setRecentActions] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Removido estado showErrorsOnly pois agora sempre mostramos erros
 
   async function load() {
     setLoading(true);
@@ -37,8 +38,13 @@ const Dashboard: React.FC = () => {
       }
       setUser(me.data);
 
-      // Tentamos buscar ações recentes (endpoint exemplo: /audit?limit=10)
-      const logs = await api("/audit?limit=10");
+      // Calcula a data/hora de uma hora atrás
+      const oneHourAgo = new Date();
+      oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+      const dataInicial = oneHourAgo.toISOString();
+      
+      // Busca ações com filtros de tempo e erro
+      const logs = await api(`/audit?limit=10&errorsOnly=true&dataInicial=${encodeURIComponent(dataInicial)}`);
       if (logs.ok) setRecentActions(logs.data || []);
     } catch (err) {
       setError("Erro ao carregar dados do dashboard");
@@ -50,11 +56,15 @@ const Dashboard: React.FC = () => {
 
   useEffect(() => {
     load();
+    // Atualiza a cada minuto para manter os erros da última hora atualizados
+    const interval = setInterval(load, 60000);
+    return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const totalActions = recentActions.length;
   const lastAction = recentActions[0]?.action ?? "Nenhuma ação encontrada";
+  const hasActions = recentActions.length > 0;
   const accountStatus = user?.isLocked ? "Bloqueada" : "Ativa";
 
   return (
@@ -90,13 +100,14 @@ const Dashboard: React.FC = () => {
           <>
             <section className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
               <div className="p-4 bg-white rounded shadow">
-                <h3 className="text-sm text-gray-500">Ações recentes</h3>
-                <p className="text-2xl font-bold">{totalActions}</p>
+                <h3 className="text-sm text-gray-500">Erros na última hora</h3>
+                <p className={`text-2xl font-bold ${totalActions == 0 ? 'text-green-600' : 'text-red-600'}`}>  {totalActions}</p>
+                <p className="text-xs text-gray-500 mt-1">Total de falhas registradas</p>
               </div>
 
               <div className="p-4 bg-white rounded shadow">
-                <h3 className="text-sm text-gray-500">Última ação</h3>
-                <p className="text-lg">{lastAction}</p>
+                <h3 className="text-sm text-gray-500">Último erro registrado</h3>
+                <p className={`text-lg ${hasActions ? 'text-red-600' : 'text-gray-900 italic'}`}>{lastAction}</p>
                 <p className="text-xs text-gray-400 mt-2">
                   {recentActions[0]?.createdAt
                     ? new Date(recentActions[0].createdAt).toLocaleString()
@@ -138,21 +149,13 @@ const Dashboard: React.FC = () => {
               </div>
             </section>
 
-            {user?.role === "admin" && (
-              <section>
-                <h2 className="text-xl font-semibold mb-4">Painel Avançado</h2>
-                <div className="flex gap-3">
-                  <Link to="/admin/audit" className="px-4 py-2 bg-indigo-600 text-white rounded">Auditoria</Link>
-                  <Link to="/admin/tests" className="px-4 py-2 bg-indigo-600 text-white rounded">Admin Tests</Link>
-                </div>
-              </section>
-            )}
-
             <section className="mt-8">
-              <h2 className="text-lg font-semibold mb-2">Ações recentes</h2>
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold">Registro de Erros (Última Hora)</h2>
+              </div>
               <div className="space-y-2">
                 {recentActions.length === 0 ? (
-                  <p className="text-sm text-gray-500">Nenhuma ação recente.</p>
+                  <p className="text-sm text-red-500">Nenhuma ação recente.</p>
                 ) : (
                   recentActions.map((a) => (
                     <div key={a.id} className="p-3 bg-white rounded shadow-sm flex justify-between">
