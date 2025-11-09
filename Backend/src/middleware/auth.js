@@ -9,9 +9,22 @@ async function auth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = await prisma.user.findUnique({ where: { id: decoded.sub } });
+    console.log('Token decodificado:', decoded);
+    
+    const user = await prisma.user.findUnique({ 
+      where: { id: decoded.sub },
+      select: { id: true }  // Verificar se o usuário existe
+    });
+    
+    if (!user) {
+      console.log('Usuário não encontrado:', decoded.sub);
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+
+    req.user = decoded;
     next();
-  } catch {
+  } catch (error) {
+    console.error('Erro na autenticação:', error);
     return res.status(403).json({ message: "Token inválido" });
   }
 }

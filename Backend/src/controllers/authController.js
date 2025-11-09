@@ -1,17 +1,49 @@
-const { register, login } = require("../services/authService");
+const { register: registerService, login: loginService } = require("../services/authService");
+const prisma = require("../prismaClient");
 
-async function registerController(req, res) {
-  const result = await register({ ...req.body, ip: req.ip });
+async function register(req, res) {
+  const result = await registerService({ ...req.body, ip: req.ip });
   return res.status(result.status).json(result);
 }
 
-async function loginController(req, res) {
-  const result = await login({ ...req.body, ip: req.ip });
+async function login(req, res) {
+  const { email, password } = req.body;
+  const result = await loginService({ email, password, ip: req.ip });
 
-  if (result.token)
-    return res.json({ token: result.token });
-
-  return res.status(result.status).json(result);
+  return res.status(result.status).json(
+    result.token ? { token: result.token } : { message: result.message }
+  );
 }
 
-module.exports = { register: registerController, login: loginController };
+async function me(req, res) {
+  try {
+    console.log('Dados do usuário na requisição:', req.user);
+    
+    const user = await prisma.user.findUnique({
+      where: { 
+        id: parseInt(req.user.sub) // Garantir que o ID seja um número
+      },
+      select: { 
+        id: true, 
+        name: true, 
+        email: true, 
+        role: true, 
+        isLocked: true 
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+    return res.json(user);
+  } catch (error) {
+    console.error('Erro ao buscar usuário:', error);
+    return res.status(500).json({ message: "Erro interno do servidor", error: error.message });
+  }
+}
+
+module.exports = {
+  register,
+  login,
+  me
+};

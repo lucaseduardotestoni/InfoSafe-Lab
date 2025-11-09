@@ -29,6 +29,7 @@ const handleLogin = async (e: React.FormEvent) => {
   setIsLoading(true);
 
   const { ok, data } = await loginService(loginData.email, loginData.password);
+  console.log('Login response:', { ok, data });
 
   if (!ok) {
     toast.error(data.message || "Erro ao fazer login");
@@ -39,7 +40,7 @@ const handleLogin = async (e: React.FormEvent) => {
   localStorage.setItem("token", data.token);
   toast.success("Login realizado com sucesso!");
   setIsLoading(false);
-  navigate("/");
+  navigate("/dashboard");
 };
 
 const handleRegister = async (e: React.FormEvent) => {
@@ -60,7 +61,7 @@ const handleRegister = async (e: React.FormEvent) => {
 
   toast.success("Usuário registrado com sucesso!");
   setIsLoading(false);
-  navigate("/");
+  navigate("/dashboard");
 };
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-accent/20 to-background p-4">
