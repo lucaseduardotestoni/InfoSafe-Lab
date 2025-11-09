@@ -3,11 +3,15 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Auth from "./pages/Auth";
-import NotFound from "./pages/NotFound";
 import Dashboard from "./pages/Dashboard";
-import AdminPanel from "./pages/AdminPanel";
+import SqlInjectionTest from "./pages/tests/SqlInjectionTest";
+import XssTest from "./pages/tests/XssTest";
+import CsrfTest from "./pages/tests/CsrfTest";
+import LogSanitizationTest from "./pages/tests/LogSanitizationTest";
 import RequireAuth from "./components/RequireAuth";
+import Auth from "./pages/Auth"
+import NotFound from "./pages/NotFound";
+import AdminPanel from "./pages/AdminPanel";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +41,42 @@ const App = () => (
               </RequireAuth>
             }
           />
+          {/**SQL Injection*/}
+          <Route
+          path="/tests/sql-injection" 
+            element={
+              <RequireAuth>
+                <SqlInjectionTest/>
+              </RequireAuth>
+            }
+          ></Route>
+          {/**Xss*/}
+          <Route
+          path="/tests/Xss" 
+            element={
+              <RequireAuth>
+                <XssTest/>
+              </RequireAuth>
+            }
+          ></Route>
+          {/**Csrf*/}
+          <Route
+          path="/tests/Csrf" 
+            element={
+              <RequireAuth>
+                <CsrfTest/>
+              </RequireAuth>
+            }
+          ></Route>
+          {/**LogSanitization*/}
+          <Route
+          path="/tests/log-sanitization" 
+            element={
+              <RequireAuth>
+                <LogSanitizationTest/>
+              </RequireAuth>
+            }
+          ></Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
