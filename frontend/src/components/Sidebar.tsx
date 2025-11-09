@@ -87,7 +87,7 @@ const Sidebar: React.FC = () => {
           )}
         </div>
 
-        {/* Links administrativos - visíveis apenas para admin */}
+        {/* Auditoria */}
         {user?.role === 'admin' && (
           <div className="mt-4 pt-4 border-t">
             <NavLink 
@@ -98,7 +98,7 @@ const Sidebar: React.FC = () => {
             </NavLink>
           </div>
         )}
-                {/* Links administrativos - visíveis apenas para admin */}
+        {/* Gerenciamento de Usuários*/}
         {user?.role === 'admin' && (
           <div className="mt-4 pt-4 border-t">
             <NavLink 
