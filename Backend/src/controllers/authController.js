@@ -1,41 +1,17 @@
-const prisma = require("../prismaClient");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
+const { register, login } = require("../services/authService");
 
-async function register(req, res) {
-  const { email, password, name } = req.body;
-
-  // Verifica se o email já existe
-  const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) return res.status(409).json({ message: "Email já cadastrado" });
-
-  // Criptografa senha
-  const passwordHash = await bcrypt.hash(password, 10);
-
-  // Cria usuário
-  await prisma.user.create({
-    data: { email, passwordHash, name, role: "user", isLocked: false, failedLogin: 0 }
-  });
-
-  return res.status(201).json({ message: "Usuário registrado com sucesso" });
+async function registerController(req, res) {
+  const result = await register({ ...req.body, ip: req.ip });
+  return res.status(result.status).json(result);
 }
 
-async function login(req, res) {
-  const { email, password } = req.body;
+async function loginController(req, res) {
+  const result = await login({ ...req.body, ip: req.ip });
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) return res.status(401).json({ message: "Credenciais inválidas" });
+  if (result.token)
+    return res.json({ token: result.token });
 
-  const valid = await bcrypt.compare(password, user.passwordHash);
-  if (!valid) return res.status(401).json({ message: "Credenciais inválidas" });
-
-  const token = jwt.sign(
-    { sub: user.id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "2h" }
-  );
-
-  res.json({ token });
+  return res.status(result.status).json(result);
 }
 
-module.exports = { register, login };
+module.exports = { register: registerController, login: loginController };

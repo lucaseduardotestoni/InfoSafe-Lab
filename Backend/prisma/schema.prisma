@@ -10,27 +10,29 @@ generator client {
 model User {
   id           Int       @id @default(autoincrement())
   email        String    @unique
-  passwordHash String    @map("password_hash")
+  passwordHash String
   name         String
   role         String
-  isLocked     Boolean   @map("is_locked")
-  failedLogin  Int       @map("failed_login")
-  createdAt    DateTime  @map("created_at") @default(now())
-  updatedAt    DateTime  @map("updated_at") @updatedAt
+  isLocked     Boolean   @default(false)
+  failedLogin  Int       @default(0)
+  lockedAt     DateTime? @map("locked_at") // <- novo campo
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   AuditLogs    AuditLog[]
 
-  @@map("user")     // ✅ Aqui dentro do model
+  @@map("user")     
 }
 
 model AuditLog {
   id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
+  userId    Int?     @map("user_id")   
   action    String
-  ip        String
+  ip        String?
   createdAt DateTime @map("created_at") @default(now())
 
-  user User @relation(fields: [userId], references: [id])
+  user User? @relation(fields: [userId], references: [id]) 
 
-  @@map("audit_logs")   // ✅ Também dentro do model
+  @@map("audit_logs")
 }
+

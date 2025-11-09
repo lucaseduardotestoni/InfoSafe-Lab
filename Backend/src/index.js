@@ -12,6 +12,6 @@ app.use(express.json());
 app.use("/auth", authRoutes);
 app.use("/users", usersRoutes);
 
-app.listen(3001, () => {
-  console.log('Backend rodando na porta 3001');
+app.listen(port = 3001, () => {
+  console.log(`Backend rodando em http://localhost:${port}`);
 });
