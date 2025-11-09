@@ -1,9 +1,33 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { ChevronDown, ChevronRight } from "lucide-react";
+import { api } from "../services/api";
+
+type User = {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+};
 
 const Sidebar: React.FC = () => {
-  const [isTestsOpen, setIsTestsOpen] = useState(true);
+  const [isTestsOpen, setIsTestsOpen] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
+
+  useEffect(() => {
+    // Carrega informações do usuário
+    async function loadUser() {
+      try {
+        const response = await api("/auth/me");
+        if (response.ok) {
+          setUser(response.data);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar usuário:", error);
+      }
+    }
+    loadUser();
+  }, []);
 
   const baseNavClass = "px-2 py-1.5 rounded-md transition-colors duration-200";
   const activeNavClass = "font-semibold text-indigo-600 bg-indigo-50";
@@ -63,15 +87,29 @@ const Sidebar: React.FC = () => {
           )}
         </div>
 
-        {/* Links administrativos */}
-        <div className="mt-4 pt-4 border-t">
-          <NavLink 
-            to="/admin/audit" 
-            className={({isActive}) => `${baseNavClass} ${isActive ? activeNavClass : normalNavClass}`}
-          >
-            Auditoria
-          </NavLink>
-        </div>
+        {/* Links administrativos - visíveis apenas para admin */}
+        {user?.role === 'admin' && (
+          <div className="mt-4 pt-4 border-t">
+            <NavLink 
+              to="/admin/audit" 
+              className={({isActive}) => `${baseNavClass} ${isActive ? activeNavClass : normalNavClass}`}
+            >
+              Auditoria
+            </NavLink>
+          </div>
+        )}
+                {/* Links administrativos - visíveis apenas para admin */}
+        {user?.role === 'admin' && (
+          <div className="mt-4 pt-4 border-t">
+            <NavLink 
+              to="/admin/painel" 
+              className={({isActive}) => `${baseNavClass} ${isActive ? activeNavClass : normalNavClass}`}
+            >
+              Painel Administrativo
+            </NavLink>
+          </div>
+        )}
+
       </nav>
     </aside>
   );

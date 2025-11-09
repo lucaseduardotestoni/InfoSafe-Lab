@@ -6,7 +6,11 @@ const { logAction } = require("./auditLogService");
 async function register({ email, password, name, ip }) {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    await logAction("REGISTER_FAILED_EMAIL_EXISTS", null, ip);
+    await logAction("REGISTER_FAILED_EMAIL_EXISTS", null, ip, JSON.stringify({
+      action: "REGISTER_ATTEMPT",
+      email: email,
+      name: name
+    }));
     return { status: 409, message: "Email já cadastrado" };
   }
 
@@ -25,8 +29,15 @@ async function login({ email, password, ip }) {
 
   const user = await prisma.user.findUnique({ where: { email } });
 
+  // Captura a tentativa de login com o email usado
+  const commandExecuted = JSON.stringify({
+    action: "LOGIN_ATTEMPT",
+    email: email
+    // Nunca incluir a senha aqui!
+  });
+
   if (!user) {
-    await prisma.auditLog.create({ data: { action: "LOGIN_FAILED_USER_NOT_FOUND", ip } });
+    await logAction("LOGIN_FAILED_USER_NOT_FOUND", null, ip, commandExecuted);
     return { status: 401, message: "Credenciais inválidas" };
   }
 
@@ -57,7 +68,11 @@ async function login({ email, password, ip }) {
         data: { isLocked: true, failedLogin: attempts, lockedAt: new Date() }
       });
 
-      await prisma.auditLog.create({ data: { action: "ACCOUNT_LOCKED", userId: user.id, ip } });
+      await logAction("ACCOUNT_LOCKED", user.id, ip, JSON.stringify({
+        action: "ACCOUNT_LOCKED",
+        email: email,
+        attempts: attempts
+      }));
       return { status: 403, message: "Conta bloqueada por tentativas excessivas" };
     }
 
@@ -66,7 +81,7 @@ async function login({ email, password, ip }) {
       data: { failedLogin: attempts }
     });
 
-    await prisma.auditLog.create({ data: { action: "LOGIN_FAILED_WRONG_PASSWORD", userId: user.id, ip } });
+    await logAction("LOGIN_FAILED_WRONG_PASSWORD", user.id, ip, commandExecuted);
     return { status: 401, message: `Senha incorreta. Tentativas restantes: ${5 - attempts}` };
   }
 
@@ -81,7 +96,7 @@ async function login({ email, password, ip }) {
     { expiresIn: "2h" }
   );
 
-  await prisma.auditLog.create({ data: { action: "LOGIN_SUCCESS", userId: user.id, ip } });
+  await logAction("LOGIN_SUCCESS", user.id, ip);
 
   return { status: 200, token };
 }

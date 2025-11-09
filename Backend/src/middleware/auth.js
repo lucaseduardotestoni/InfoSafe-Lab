@@ -9,11 +9,16 @@ async function auth(req, res, next) {
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Token decodificado:', decoded);
     
     const user = await prisma.user.findUnique({ 
       where: { id: decoded.sub },
-      select: { id: true }  // Verificar se o usuário existe
+      select: { 
+        id: true, 
+        name: true,
+        email: true,
+        role: true,
+        isLocked: true
+      }
     });
     
     if (!user) {
@@ -21,7 +26,10 @@ async function auth(req, res, next) {
       return res.status(404).json({ message: "Usuário não encontrado" });
     }
 
-    req.user = decoded;
+    req.user = {
+      ...decoded,
+      ...user // Usa todos os dados atuais do banco
+    };
     next();
   } catch (error) {
     console.error('Erro na autenticação:', error);

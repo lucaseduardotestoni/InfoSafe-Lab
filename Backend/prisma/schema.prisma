@@ -25,11 +25,12 @@ model User {
 }
 
 model AuditLog {
-  id        Int      @id @default(autoincrement())
-  userId    Int?     @map("user_id")   
-  action    String
-  ip        String?
-  createdAt DateTime @map("created_at") @default(now())
+  id             Int      @id @default(autoincrement())
+  userId         Int?     @map("user_id")   
+  action         String
+  ip             String?
+  executedCommand String? @map("executed_command")
+  createdAt      DateTime @map("created_at") @default(now())
 
   user User? @relation(fields: [userId], references: [id]) 
 

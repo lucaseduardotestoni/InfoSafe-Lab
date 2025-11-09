@@ -37,7 +37,14 @@ const handleLogin = async (e: React.FormEvent) => {
     return;
   }
 
+  // Salva o token
   localStorage.setItem("token", data.token);
+  
+  // Se tiver dados do usuário, salva também
+  if (data.user) {
+    localStorage.setItem("user", JSON.stringify(data.user));
+  }
+
   toast.success("Login realizado com sucesso!");
   setIsLoading(false);
   navigate("/dashboard");

@@ -11,7 +11,8 @@ import LogSanitizationTest from "./pages/tests/LogSanitizationTest";
 import RequireAuth from "./components/RequireAuth";
 import Auth from "./pages/Auth"
 import NotFound from "./pages/NotFound";
-import AdminPanel from "./pages/AdminPanel";
+import UserAdmin from "./pages/UsersAdmin";
+import Audit from "./pages/Audit"
 
 const queryClient = new QueryClient();
 
@@ -34,13 +35,21 @@ const App = () => (
             }/>
           {/* ADMIN */}
           <Route
-            path="/admin/tests"
+            path="/admin/painel"
             element={
               <RequireAuth>
-                <AdminPanel />
+                <UserAdmin/>
               </RequireAuth>
             }
           />
+         {/*Auditoria*/}
+          <Route
+            path="/admin/audit"
+            element={
+              <RequireAuth>
+                <Audit />
+              </RequireAuth>
+            }/>
           {/**SQL Injection*/}
           <Route
           path="/tests/sql-injection" 

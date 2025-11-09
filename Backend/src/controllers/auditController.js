@@ -2,14 +2,12 @@ const prisma = require("../prismaClient");
 
 async function getAuditLogs(req, res) {
   try {
-    const { userId, dataInicial, dataFinal, limit = 50, errorsOnly = false } = req.query;
+    const { dataInicial, dataFinal, limit = 50, errorsOnly = false } = req.query;
 
-    const where = {};
-
-    // Se userId for enviado e for válido, filtra
-    if (userId && !isNaN(Number(userId))) {
-      where.userId = Number(userId);
-    }
+    // Sempre filtra pelos logs do usuário atual
+    const where = {
+      userId: req.user.sub
+    };
 
     // Filtra apenas ações de erro se solicitado
     if (errorsOnly === 'true') {

@@ -36,6 +36,7 @@ const Dashboard: React.FC = () => {
         navigate("/auth");
         return;
       }
+      console.log(me.data)
       setUser(me.data);
 
       // Calcula a data/hora de uma hora atrás
