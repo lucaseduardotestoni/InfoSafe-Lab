@@ -1,15 +1,7 @@
 import React, { useState } from "react";
-import { api } from "../../services/api";
 import DashboardLayout from "../../components/DashboardLayout";
 import { useToast } from "../../hooks/use-toast";
-
-interface TestResult {
-  name: string;
-  status: 'success' | 'failed';
-  payload: string;
-  response: any;
-  timestamp: string;
-}
+import { sqlTestService, TestResult } from "../../services/sqlTestService";
 
 const SqlInjectionTest: React.FC = () => {
   const [results, setResults] = useState<TestResult[]>([]);
@@ -25,258 +17,111 @@ const SqlInjectionTest: React.FC = () => {
     { value: "/users", label: "Listar Usuários (GET)", method: "GET" }
   ];
 
-  const addResult = (
-    name: string,
-    status: 'success' | 'failed',
-    payload: string,
-    response: any
-  ) => {
-    setResults(prev => [...prev, {
-      name,
-      status,
-      payload,
-      response,
-      timestamp: new Date().toLocaleString()
-    }]);
-  };
-
-  // Testes de SQL Injection
+  // SQL Injection Tests
   const sqlInjectionTests = async () => {
-    const payloads = [
-      "' OR '1'='1",
-      "admin'--",
-      "' UNION SELECT * FROM users--",
-      "'; DROP TABLE users;--"
-    ];
-
-    for (const payload of payloads) {
-      try {
-        const loginResponse = await api("/auth/login", {
-          method: "POST",
-          body: JSON.stringify({
-            email: payload,
-            password: payload
-          })
-        });
-
-        // Se o login foi bem-sucedido com SQL injection, isso é uma falha de segurança
-        if (loginResponse.ok) {
-          addResult(
-            "SQL Injection - Login",
-            "failed",
-            payload,
-            loginResponse.data
-          );
-        } else {
-          addResult(
-            "SQL Injection - Login",
-            "success",
-            payload,
-            loginResponse.data
-          );
-        }
-      } catch (error) {
-        addResult(
-          "SQL Injection - Login",
-          "success", // Erro na requisição é bom neste caso
-          payload,
-          { error: "Requisição falhou - comportamento esperado" }
-        );
-      }
+    setLoading(true);
+    try {
+      const newResults = await sqlTestService.runSqlInjectionTests();
+      setResults(prev => [...prev, ...newResults]);
+      toast({
+        title: "Testes de SQL Injection concluídos",
+        description: `${newResults.length} testes executados`
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao executar testes",
+        description: "Ocorreu um erro ao executar os testes de SQL Injection",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   // Testes de Manipulação de Role
   const roleManipulationTests = async () => {
-    const tests = [
-      {
-        name: "Elevação para Admin sem Autenticação",
-        endpoint: "/users/1/role",
-        method: "PATCH",
-        payload: { role: "admin" }
-      },
-      {
-        name: "Alteração de Role com Token Inválido",
-        endpoint: "/users/1/role",
-        method: "PATCH",
-        payload: { role: "admin" },
-        headers: { Authorization: "Bearer invalid_token" }
-      }
-    ];
-
-    for (const test of tests) {
-      try {
-        const response = await api(test.endpoint, {
-          method: test.method,
-          body: JSON.stringify(test.payload),
-          headers: test.headers
-        });
-
-        // Se conseguiu alterar a role sem autenticação adequada, é uma falha
-        if (response.ok) {
-          addResult(test.name, "failed", JSON.stringify(test.payload), response.data);
-        } else {
-          addResult(test.name, "success", JSON.stringify(test.payload), response.data);
-        }
-      } catch (error) {
-        addResult(
-          test.name,
-          "success",
-          JSON.stringify(test.payload),
-          { error: "Requisição falhou - comportamento esperado" }
-        );
-      }
-    }
-  };
-
-  // Testes de Bruteforce
-  const bruteforceTests = async () => {
-    const email = "test@example.com";
-    const attempts = [];
-
-    for (let i = 1; i <= 6; i++) {
-      try {
-        const response = await api("/auth/login", {
-          method: "POST",
-          body: JSON.stringify({
-            email,
-            password: "senha_errada"
-          })
-        });
-
-        attempts.push(response);
-
-        if (response.status === 403 && response.data?.message?.includes("bloqueada")) {
-          addResult(
-            "Proteção contra Bruteforce",
-            "success",
-            `Tentativa ${i}`,
-            response.data
-          );
-          break;
-        }
-
-        // Se chegou na 6ª tentativa sem bloqueio, é uma falha
-        if (i === 6) {
-          addResult(
-            "Proteção contra Bruteforce",
-            "failed",
-            "6 tentativas",
-            { error: "Conta não foi bloqueada após múltiplas tentativas" }
-          );
-        }
-      } catch (error) {
-        console.error("Erro no teste de bruteforce:", error);
-      }
-    }
-  };
-
-  // Testes de Deleção de Usuário
-  const userDeletionTests = async () => {
-    const tests = [
-      {
-        name: "Deleção sem Autenticação",
-        endpoint: "/users/1",
-        method: "DELETE"
-      },
-      {
-        name: "Deleção com Token Inválido",
-        endpoint: "/users/1",
-        method: "DELETE",
-        headers: { Authorization: "Bearer invalid_token" }
-      }
-    ];
-
-    for (const test of tests) {
-      try {
-        const response = await api(test.endpoint, {
-          method: test.method,
-          headers: test.headers
-        });
-
-        // Se conseguiu deletar sem autenticação adequada, é uma falha
-        if (response.ok) {
-          addResult(test.name, "failed", test.endpoint, response.data);
-        } else {
-          addResult(test.name, "success", test.endpoint, response.data);
-        }
-      } catch (error) {
-        addResult(
-          test.name,
-          "success",
-          test.endpoint,
-          { error: "Requisição falhou - comportamento esperado" }
-        );
-      }
-    }
-  };
-
-  const runCustomTest = async () => {
-    if (!customPayload.trim()) {
+    setLoading(true);
+    try {
+      const newResults = await sqlTestService.runRoleManipulationTests();
+      setResults(prev => [...prev, ...newResults]);
       toast({
-        title: "Erro",
-        description: "Por favor, insira um payload para testar",
+        title: "Testes de Manipulação de Role concluídos",
+        description: `${newResults.length} testes executados`
+      });
+    } catch (error) {
+      toast({
+        title: "Erro ao executar testes",
+        description: "Ocorreu um erro ao executar os testes de manipulação de role",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
+
+  // Custom Test
+  const runCustomTest = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!customPayload) {
+      toast({
+        title: "Payload necessário",
+        description: "Informe um payload para o teste",
         variant: "destructive"
       });
       return;
     }
 
     setLoading(true);
-    const selectedEndpointInfo = availableEndpoints.find(e => e.value === selectedEndpoint);
-
     try {
-      const response = await api(selectedEndpoint, {
-        method: selectedEndpointInfo?.method || "POST",
-        body: selectedEndpointInfo?.method !== "GET" ? JSON.stringify({
-          ...(selectedEndpoint === "/auth/login" ? {
-            email: customPayload,
-            password: customPayload
-          } : { payload: customPayload })
-        }) : undefined,
-      });
+      const selectedTest = availableEndpoints.find(e => e.value === selectedEndpoint);
+      if (!selectedTest) return;
 
-      addResult(
-        `Teste Personalizado - ${selectedEndpointInfo?.label}`,
-        response.ok ? "failed" : "success",
-        customPayload,
-        response.data
+      const result = await sqlTestService.runCustomTest(
+        selectedEndpoint,
+        selectedTest.method,
+        customPayload
       );
-
+      
+      setResults(prev => [...prev, result]);
       toast({
-        title: "Teste Executado",
-        description: "O teste personalizado foi executado com sucesso"
+        title: "Teste Customizado concluído",
+        description: `Resultado: ${result.status === 'success' ? 'Proteção funcionando' : 'Possível vulnerabilidade'}`
       });
     } catch (error) {
-      addResult(
-        `Teste Personalizado - ${selectedEndpointInfo?.label}`,
-        "success",
-        customPayload,
-        { error: "Requisição falhou - comportamento esperado" }
-      );
+      toast({
+        title: "Erro ao executar teste",
+        description: "Ocorreu um erro ao executar o teste customizado",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  // Run All Tests
   const runAllTests = async () => {
     setLoading(true);
     setResults([]);
-
+    
     try {
-      await sqlInjectionTests();
-      await roleManipulationTests();
-      await bruteforceTests();
-      await userDeletionTests();
+      // SQL Injection Tests
+      const sqlResults = await sqlTestService.runSqlInjectionTests();
+      setResults(prev => [...prev, ...sqlResults]);
+
+      // Role Manipulation Tests
+      const roleResults = await sqlTestService.runRoleManipulationTests();
+      setResults(prev => [...prev, ...roleResults]);
 
       toast({
-        title: "Testes Concluídos",
-        description: "Todos os testes de segurança foram executados"
+        title: "Todos os testes concluídos",
+        description: "Os testes de segurança foram executados com sucesso"
       });
     } catch (error) {
-      console.error("Erro ao executar testes:", error);
       toast({
-        title: "Erro",
-        description: "Ocorreu um erro ao executar os testes",
+        title: "Erro nos testes",
+        description: "Ocorreu um erro ao executar os testes de segurança",
         variant: "destructive"
       });
     } finally {
