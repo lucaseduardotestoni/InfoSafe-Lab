@@ -17,6 +17,13 @@ export async function api(path, options = {}) {
   let data;
   try { data = await response.json(); } catch { data = null; }
 
+  // Verifica se é resposta de conta bloqueada
+  if (response.status === 403 && data?.code === "ACCOUNT_LOCKED") {
+    // Limpa o token e força logout
+    localStorage.removeItem("token");
+    window.location.href = "/auth?message=" + encodeURIComponent(data.message);
+  }
+
   return {
     ok: response.ok,
     status: response.status,

@@ -41,20 +41,60 @@ async function login({ email, password, ip }) {
     return { status: 401, message: "Credenciais inválidas" };
   }
 
+  // Verifica se o usuário está bloqueado
   if (user.isLocked) {
-    const diffMinutes = (Date.now() - new Date(user.lockedAt).getTime()) / 1000 / 60;
-
-    if (diffMinutes < LOCK_TIME_MINUTES) {
+    // Se o usuário tem falhas de login zeradas mas está bloqueado, é bloqueio administrativo
+    if (user.failedLogin === 0) {
+      await logAction("LOGIN_ATTEMPT_ADMIN_LOCKED", user.id, ip, JSON.stringify({
+        action: "LOGIN_ATTEMPT_ADMIN_LOCKED",
+        email: email
+      }));
       return { 
         status: 403, 
-        message: `Conta bloqueada. Tente novamente em ${Math.ceil(LOCK_TIME_MINUTES - diffMinutes)} minutos.` 
+        message: "Esta conta está bloqueada. Entre em contato com o administrador." 
       };
     }
 
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { isLocked: false, failedLogin: 0, lockedAt: null }
-    });
+    // Verifica se tem lockedAt e failedLogin > 0 (indica bloqueio por força bruta)
+    if (user.lockedAt && user.failedLogin > 0) {
+      const diffMinutes = (Date.now() - new Date(user.lockedAt).getTime()) / 1000 / 60;
+      const currentLockTime = user.failedLogin >= 5 ? LOCK_TIME_MINUTES * 2 : LOCK_TIME_MINUTES;
+
+      if (diffMinutes < currentLockTime) {
+        // Se tentar login durante o bloqueio, aumenta o tempo
+        const newLockTime = currentLockTime + LOCK_TIME_MINUTES;
+        
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { 
+            lockedAt: new Date(), // Reseta o timer
+            failedLogin: user.failedLogin + 1
+          }
+        });
+
+        await logAction("LOGIN_ATTEMPT_DURING_LOCKOUT", user.id, ip, JSON.stringify({
+          action: "LOGIN_ATTEMPT_DURING_LOCKOUT",
+          email: email,
+          lockTimeExtended: newLockTime
+        }));
+
+        return { 
+          status: 403, 
+          message: `Conta bloqueada. Devido a tentativas durante o bloqueio, o tempo foi estendido para ${Math.ceil(newLockTime)} minutos.` 
+        };
+      }
+
+      // Se passou o tempo de bloqueio por força bruta, desbloqueia
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { isLocked: false, failedLogin: 0, lockedAt: null }
+      });
+
+      await logAction("ACCOUNT_UNLOCKED_TIMEOUT", user.id, ip, JSON.stringify({
+        action: "ACCOUNT_UNLOCKED_TIMEOUT",
+        email: email
+      }));
+    }
   }
 
   const valid = await bcrypt.compare(password, user.passwordHash);
@@ -63,17 +103,39 @@ async function login({ email, password, ip }) {
     const attempts = user.failedLogin + 1;
 
     if (attempts >= 5) {
+      // Verifica se o usuário já está bloqueado administrativamente
+      if (user.isLocked && user.failedLogin === 0) {
+        await logAction("LOGIN_ATTEMPT_ADMIN_LOCKED", user.id, ip, JSON.stringify({
+          action: "LOGIN_ATTEMPT_ADMIN_LOCKED",
+          email: email
+        }));
+        return { 
+          status: 403, 
+          message: "Esta conta está bloqueada. Entre em contato com o administrador." 
+        };
+      }
+
+      // Aplica o bloqueio por força bruta
       await prisma.user.update({
         where: { id: user.id },
-        data: { isLocked: true, failedLogin: attempts, lockedAt: new Date() }
+        data: { 
+          isLocked: true, 
+          failedLogin: attempts,
+          lockedAt: new Date() // Marca o momento do bloqueio
+        }
       });
 
-      await logAction("ACCOUNT_LOCKED", user.id, ip, JSON.stringify({
-        action: "ACCOUNT_LOCKED",
+      await logAction("ACCOUNT_LOCKED_BRUTE_FORCE", user.id, ip, JSON.stringify({
+        action: "ACCOUNT_LOCKED_BRUTE_FORCE",
         email: email,
-        attempts: attempts
+        attempts: attempts,
+        lockTime: LOCK_TIME_MINUTES
       }));
-      return { status: 403, message: "Conta bloqueada por tentativas excessivas" };
+
+      return { 
+        status: 403, 
+        message: `Conta bloqueada por tentativas excessivas. Tente novamente em ${LOCK_TIME_MINUTES} minutos. Novas tentativas durante o bloqueio aumentarão o tempo.` 
+      };
     }
 
     await prisma.user.update({
@@ -85,10 +147,13 @@ async function login({ email, password, ip }) {
     return { status: 401, message: `Senha incorreta. Tentativas restantes: ${5 - attempts}` };
   }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { failedLogin: 0, lockedAt: null }
-  });
+  // Se o login for bem sucedido e o usuário não estiver bloqueado administrativamente
+  if (!user.isLocked) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { failedLogin: 0, lockedAt: null }
+    });
+  }
 
   const token = jwt.sign(
     { sub: user.id, role: user.role },
@@ -102,4 +167,3 @@ async function login({ email, password, ip }) {
 }
 
 module.exports = { register, login };
-

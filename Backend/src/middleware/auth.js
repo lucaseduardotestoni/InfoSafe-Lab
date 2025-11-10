@@ -26,6 +26,14 @@ async function auth(req, res, next) {
       return res.status(404).json({ message: "Usuário não encontrado" });
     }
 
+    // Verifica se o usuário está bloqueado
+    if (user.isLocked) {
+      return res.status(403).json({ 
+        message: "Conta bloqueada. Entre em contato com o administrador.",
+        code: "ACCOUNT_LOCKED"
+      });
+    }
+
     req.user = {
       ...decoded,
       ...user // Usa todos os dados atuais do banco

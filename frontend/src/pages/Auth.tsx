@@ -12,6 +12,17 @@ const Auth = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
 
+  // Verifica se há mensagem na URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const errorMessage = urlParams.get('message');
+  
+  // Se houver mensagem, mostra o toast
+  if (errorMessage) {
+    toast.error(decodeURIComponent(errorMessage));
+    // Limpa a URL
+    window.history.replaceState({}, document.title, "/auth");
+  }
+
   const [loginData, setLoginData] = useState({
     email: "",
     password: "",
