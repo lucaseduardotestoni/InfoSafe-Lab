@@ -26,6 +26,14 @@ async function register({ email, password, name, ip }) {
 
 async function login({ email, password, ip }) {
   const LOCK_TIME_MINUTES = 15;
+  
+    if (!email) {
+    return { status: 400, message: "O campo email é obrigatório." };
+  }
+
+  if (!password) {
+    return { status: 400, message: "O campo senha é obrigatório." };
+  }
 
   const user = await prisma.user.findUnique({ where: { email } });
 

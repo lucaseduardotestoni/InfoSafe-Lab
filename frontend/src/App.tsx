@@ -7,7 +7,7 @@ import Dashboard from "./pages/Dashboard";
 import SqlInjectionTest from "./pages/tests/SqlInjectionTest";
 import XssTest from "./pages/tests/XssTest";
 import CsrfTest from "./pages/tests/CsrfTest";
-import LogSanitizationTest from "./pages/tests/LogSanitizationTest";
+import PathTraversalTest from "./pages/tests/PathTraversalTest";
 import RequireAuth from "./components/RequireAuth";
 import Auth from "./pages/Auth"
 import NotFound from "./pages/NotFound";
@@ -77,12 +77,12 @@ const App = () => (
               </RequireAuth>
             }
           ></Route>
-          {/**LogSanitization*/}
+          {/**Path Traversal*/}
           <Route
-          path="/tests/log-sanitization" 
+          path="/tests/path-traversal"
             element={
               <RequireAuth>
-                <LogSanitizationTest/>
+                <PathTraversalTest/>
               </RequireAuth>
             }
           ></Route>

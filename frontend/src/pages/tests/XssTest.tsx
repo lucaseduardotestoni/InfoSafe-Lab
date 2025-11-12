@@ -11,7 +11,7 @@ export const XssTest: React.FC = () => {
   const { toast } = useToast();
 
   const availableEndpoints = [
-    { value: "/auth/login", label: "Profile login (POST)", method: "POST" },
+    { value: "/auth/login", label: "Profile  (POST)", method: "POST" },
     { value: "/users/listUsers", label: "List Users (POST)", method: "POST" },
     { value: "/auth/me", label: "Me (GET)", method: "GET" }
   ];

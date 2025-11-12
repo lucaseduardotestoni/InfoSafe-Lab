@@ -11,8 +11,8 @@ export interface TestResult {
 class XssTestService {
   private readonly endpoints = {
     profile: '/auth/login',  // endpoint que aceita input do usuário
-    ListUsers: '/users/listUsers',      // simula endpoint de comentários
-    Me: '/auth/me'          // simula endpoint de busca
+    ListUsers: '/users/listUsers',      // simula endpoint de 
+    Me: '/auth/me'          // simula endpoint de busca Me
   };
 
   private readonly xssPayloads = [
@@ -63,7 +63,7 @@ class XssTestService {
         });
 
         // Testa em um contexto de busca
-        const searchResponse = await api(`${this.endpoints.search}?q=${encodeURIComponent(payload)}`, {
+        const searchResponse = await api(`${this.endpoints.ListUsers}?q=${encodeURIComponent(payload)}`, {
           method: "GET"
         });
 

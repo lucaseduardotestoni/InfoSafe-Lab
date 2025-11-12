@@ -78,10 +78,10 @@ const Sidebar: React.FC = () => {
                 CSRF
               </NavLink>
               <NavLink 
-                to="/tests/log-sanitization" 
+                to="/tests/path-traversal" 
                 className={({isActive}) => `${baseNavClass} ${isActive ? activeNavClass : normalNavClass}`}
               >
-                Log Sanitization
+                Cross Path
               </NavLink>
             </div>
           )}
