@@ -5,7 +5,23 @@ async function auth(req, res, next) {
   const header = req.headers.authorization;
   if (!header) return res.status(401).json({ message: "Token ausente" });
 
-  const token = header.split(" ")[1];
+  // Extract token from header. Support both "Bearer <token>" and raw tokens.
+  let token;
+  if (header.startsWith("Bearer ")) {
+    token = header.slice(7).trim();
+  } else {
+    token = header.trim();
+  }
+
+  // Remove possible surrounding quotes
+  token = token.replace(/^"|"$/g, "");
+
+  if (!token) return res.status(401).json({ message: "Token ausente" });
+
+  if (!process.env.JWT_SECRET) {
+    console.error('JWT_SECRET is not set in environment');
+    return res.status(500).json({ message: 'Server misconfiguration' });
+  }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
@@ -40,8 +56,18 @@ async function auth(req, res, next) {
     };
     next();
   } catch (error) {
+    // Handle JWT-specific errors with clearer HTTP statuses
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ message: 'Token expirado' });
+    }
+
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ message: 'Token inválido' });
+    }
+
+    // Unknown error - log and return generic 500
     console.error('Erro na autenticação:', error);
-    return res.status(403).json({ message: "Token inválido" });
+    return res.status(500).json({ message: 'Erro interno de autenticação' });
   }
 }
 
