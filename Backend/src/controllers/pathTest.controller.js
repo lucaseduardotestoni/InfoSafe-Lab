@@ -25,7 +25,8 @@ async function testPathTraversal(req, res) {
       return res.status(400).json({ message: "Parâmetro 'file' é obrigatório." });
     }
 
-    const result = await testsService.testPathTraversal(file);
+  const options = { userId: req.user?.id ?? null, ip: req.ip };
+  const result = await testsService.testPathTraversal(file, options);
 
     const httpStatus = result && typeof result.status === 'number' ? result.status : 200;
     return res.status(httpStatus).json(result);

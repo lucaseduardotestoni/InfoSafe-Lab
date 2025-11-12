@@ -31,7 +31,6 @@ model AuditLog {
   ip             String?
   executedCommand String? @map("executed_command")
   createdAt      DateTime @map("created_at") @default(now())
-
   user User? @relation(fields: [userId], references: [id]) 
 
   @@map("audit_logs")
