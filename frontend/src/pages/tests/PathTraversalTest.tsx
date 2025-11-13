@@ -8,6 +8,7 @@ const PathTraversalTest: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [selectedEndpoint, setSelectedEndpoint] = useState("/files/read?path=");
   const [customPayload, setCustomPayload] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
 
   const availableEndpoints = [
@@ -84,9 +85,48 @@ const PathTraversalTest: React.FC = () => {
               <p className="text-xs text-gray-500 mt-1">Você pode incluir sequências de traversal (../) ou versões codificadas.</p>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Enviar Arquivo de Teste</label>
+              <input type="file" onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)} className="w-full" disabled={loading} />
+              {selectedFile && <p className="text-xs text-gray-500 mt-1">Arquivo selecionado: <span className="font-mono">{selectedFile.name}</span></p>}
+              <p className="text-xs text-gray-500 mt-1">O arquivo será enviado ao endpoint de testes e salvo no servidor para uso nas rotinas de teste.</p>
+            </div>
+
             <button onClick={runCustomTest} disabled={loading} className="w-full px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-50">
               {loading ? "Executando..." : "Executar Teste Personalizado"}
             </button>
+
+            <button onClick={async () => {
+              if (!selectedFile) {
+                toast({ title: 'Arquivo necessário', description: 'Selecione um arquivo para enviar', variant: 'destructive' });
+                return;
+              }
+
+              setLoading(true);
+              try {
+                const res = await pathTraversalTestService.uploadTestFile(selectedFile);
+
+                if (!res || !res.ok) {
+                  const msg = res?.data?.message || res?.data?.detail || 'Erro ao enviar arquivo';
+                  toast({ title: 'Erro ao enviar arquivo', description: msg, variant: 'destructive' });
+                } else {
+                  toast({ title: 'Arquivo enviado', description: `Arquivo salvo em: ${res.data?.path ?? 'desconhecido'}` });
+                  // opcional: adicionar resultado / log nos resultados
+                  setResults(prev => [{
+                    name: `Upload: ${selectedFile.name}`,
+                    status: 'success',
+                    payload: selectedFile.name,
+                    response: res.data,
+                    timestamp: new Date().toLocaleString()
+                  }, ...prev]);
+                  setSelectedFile(null);
+                }
+              } catch (err: any) {
+                toast({ title: 'Erro ao enviar arquivo', description: err?.message ?? 'Erro desconhecido', variant: 'destructive' });
+              } finally {
+                setLoading(false);
+              }
+            }} disabled={loading} className="w-full mt-2 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50">{loading ? 'Enviando...' : 'Enviar Arquivo'}</button>
           </div>
         </div>
 

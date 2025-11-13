@@ -92,6 +92,42 @@ class PathTraversalTestService {
         }
     }
 
+    /**
+     * Envia um arquivo ao backend para ser salvo como arquivo de teste.
+     * O backend espera um JSON com { userId, filename, content }
+     */
+    async uploadTestFile(file: File): Promise<any> {
+        if (!file) return { ok: false, status: 400, data: { message: 'Nenhum arquivo selecionado' } };
+
+        const content = await file.text();
+        const filename = file.name;
+
+        // tenta recuperar o userId do localStorage (o Auth salva o usuário em 'user')
+        let userId = null as any;
+        try {
+            const userRaw = localStorage.getItem('user');
+            if (userRaw) {
+                const user = JSON.parse(userRaw);
+                userId = user?.id ?? null;
+            }
+        } catch {
+            userId = null;
+        }
+
+        const payload = { userId, filename, content };
+
+        try {
+            const res = await api('/tests/path-traversal/save-file', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            return res;
+        } catch (err: any) {
+            return { ok: false, status: 0, data: { message: err?.message ?? 'Erro desconhecido' } };
+        }
+    }
+
     // Classifica como falha se o servidor retornou 200 OK ou conteúdo que parece ser de arquivos sensíveis
     private evaluateResponse(response: any): 'success' | 'failed' {
         if (!response) return 'success';

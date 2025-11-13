@@ -15,6 +15,7 @@ const app = express();
 app.set('trust proxy', true);
 
 const sanitizeInputs = require('./middleware/sanitizeInputs');
+const xssLogger = require('./middleware/xssLogger');
 const helmet = require('helmet');
 app.use(helmet());
 app.use(
@@ -31,6 +32,8 @@ app.use(
 );
 app.use(cors());
 app.use(express.json());
+// Registra tentativas de XSS encontradas nos payloads (não bloqueia, apenas audita)
+app.use(xssLogger());
 app.use("/tests", testsRoutes);
 app.use("/auth", authRoutes);
 app.use("/audit", auditRoutes);
