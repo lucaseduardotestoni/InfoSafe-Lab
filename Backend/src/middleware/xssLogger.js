@@ -49,8 +49,6 @@ module.exports = function xssLogger(options = {}) {
   return async function (req, res, next) {
     try {
       const candidates = [];
-
-      // collect strings from body, query and params
       if (req.body) candidates.push(...collectStrings(req.body, maxPerField));
       if (req.query) candidates.push(...collectStrings(req.query, maxPerField));
       if (req.params) candidates.push(...collectStrings(req.params, maxPerField));
@@ -79,7 +77,7 @@ module.exports = function xssLogger(options = {}) {
               token = token.replace(/^"|"$/g, '');
               const decoded = jwt.decode(token);
               if (decoded && decoded.sub) {
-                // sub pode ser string/number; deixamos como veio
+            
                 userId = decoded.sub;
               }
             }

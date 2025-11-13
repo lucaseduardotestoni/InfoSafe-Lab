@@ -10,6 +10,8 @@ const PathTraversalTest: React.FC = () => {
   const [customPayload, setCustomPayload] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const { toast } = useToast();
+  const MAX_UPLOAD_BYTES = 1 * 1024 * 1024; // 1MB
+  const ALLOWED_EXTS = ['.txt', '.log', '.json', '.md'];
 
   const availableEndpoints = [
     { value: "/files/read?path=", label: "/files/read?path=" },
@@ -87,7 +89,36 @@ const PathTraversalTest: React.FC = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Enviar Arquivo de Teste</label>
-              <input type="file" onChange={(e) => setSelectedFile(e.target.files ? e.target.files[0] : null)} className="w-full" disabled={loading} />
+              <input
+                type="file"
+                onChange={(e) => {
+                  const f = e.target.files ? e.target.files[0] : null;
+                  if (f) {
+                    // tamanho
+                    if (f.size > MAX_UPLOAD_BYTES) {
+                      toast({ title: 'Arquivo muito grande', description: 'O arquivo não pode ser maior que 1 MB', variant: 'destructive' });
+                      e.currentTarget.value = '';
+                      setSelectedFile(null);
+                      return;
+                    }
+
+                    // extensão
+                    const name = f.name || '';
+                    const dot = name.lastIndexOf('.');
+                    const ext = dot >= 0 ? name.slice(dot).toLowerCase() : '';
+                    if (!ALLOWED_EXTS.includes(ext)) {
+                      toast({ title: 'Tipo de arquivo não permitido', description: `Use uma das extensões: ${ALLOWED_EXTS.join(', ')}`, variant: 'destructive' });
+                      e.currentTarget.value = '';
+                      setSelectedFile(null);
+                      return;
+                    }
+                  }
+
+                  setSelectedFile(f);
+                }}
+                className="w-full"
+                disabled={loading}
+              />
               {selectedFile && <p className="text-xs text-gray-500 mt-1">Arquivo selecionado: <span className="font-mono">{selectedFile.name}</span></p>}
               <p className="text-xs text-gray-500 mt-1">O arquivo será enviado ao endpoint de testes e salvo no servidor para uso nas rotinas de teste.</p>
             </div>
@@ -99,6 +130,10 @@ const PathTraversalTest: React.FC = () => {
             <button onClick={async () => {
               if (!selectedFile) {
                 toast({ title: 'Arquivo necessário', description: 'Selecione um arquivo para enviar', variant: 'destructive' });
+                return;
+              }
+              if (selectedFile.size > MAX_UPLOAD_BYTES) {
+                toast({ title: 'Arquivo muito grande', description: 'O arquivo não pode ser maior que 1 MB', variant: 'destructive' });
                 return;
               }
 

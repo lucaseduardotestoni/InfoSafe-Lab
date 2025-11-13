@@ -134,4 +134,66 @@ async function testPathTraversal(file, options = {}) {
   }
 }
 
-module.exports = { testPathTraversal, safeDecode };
+// exports moved to the bottom after saveFile is defined
+
+// Salva um arquivo de teste no diretório safe-files/uploads
+async function saveFile(userId, filename, content) {
+  const pathModule = require('path');
+  const { ensureDirExists, resolveSafePath } = require('../utils/fileHelpers');
+
+  if (!filename || typeof filename !== 'string') {
+    const err = new Error('filename inválido');
+    err.status = 400;
+    throw err;
+  }
+
+  if (typeof content === 'undefined') {
+    const err = new Error('content é obrigatório');
+    err.status = 400;
+    throw err;
+  }
+
+  // evita nomes com diretórios
+  const baseName = pathModule.basename(filename);
+  if (baseName !== filename) {
+    const err = new Error('filename não pode conter caminhos');
+    err.status = 400;
+    throw err;
+  }
+
+  const ext = pathModule.extname(baseName).toLowerCase();
+  if (!ALLOWED_EXT.has(ext)) {
+    const err = new Error('Extensão de arquivo não permitida');
+    err.status = 403;
+    throw err;
+  }
+
+  const byteLen = Buffer.byteLength(String(content), 'utf8');
+  if (byteLen > MAX_BYTES) {
+    const err = new Error('Arquivo muito grande.');
+    err.status = 413;
+    throw err;
+  }
+
+  const uploadsDir = pathModule.resolve(__dirname, '../../safe-files/uploads');
+  await ensureDirExists(uploadsDir);
+
+  // Gera nome único
+  // Prefixa com userId quando disponível, caso contrário usa timestamp
+  const prefix = userId ? String(userId) : String(Date.now());
+  const safeName = `${prefix}_${baseName}`;
+  const targetPath = resolveSafePath(uploadsDir, safeName);
+
+  try {
+    await fsp.writeFile(targetPath, String(content), 'utf8');
+    return targetPath;
+  } catch (e) {
+    const err = new Error('Erro ao salvar arquivo');
+    err.status = 500;
+    err.detail = e && e.message;
+    throw err;
+  }
+}
+
+// reexport com saveFile
+module.exports = { testPathTraversal, safeDecode, saveFile };

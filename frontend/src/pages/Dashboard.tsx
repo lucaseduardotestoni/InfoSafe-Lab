@@ -143,9 +143,9 @@ const Dashboard: React.FC = () => {
                   <p className="text-sm text-gray-500">Simular envio de requisições sem token/CSRF</p>
                 </Link>
 
-                <Link to="/tests/log-sanitization" className="p-4 bg-white rounded shadow hover:shadow-lg">
-                  <h3 className="font-semibold">Neutralização de logs</h3>
-                  <p className="text-sm text-gray-500">Verificar saída para logs e possíveis injeções</p>
+                <Link to="/tests/path-traversal" className="p-4 bg-white rounded shadow hover:shadow-lg">
+                  <h3 className="font-semibold">Caminho Transversal</h3>
+                  <p className="text-sm text-gray-500">Verificar e validar os caminhos de arquivos para evitar acessos não autorizados fora do diretório previsto.</p>
                 </Link>
               </div>
             </section>

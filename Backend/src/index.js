@@ -32,7 +32,6 @@ app.use(
 );
 app.use(cors());
 app.use(express.json());
-// Registra tentativas de XSS encontradas nos payloads (não bloqueia, apenas audita)
 app.use(xssLogger());
 app.use("/tests", testsRoutes);
 app.use("/auth", authRoutes);

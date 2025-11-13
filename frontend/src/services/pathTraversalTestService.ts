@@ -99,8 +99,20 @@ class PathTraversalTestService {
     async uploadTestFile(file: File): Promise<any> {
         if (!file) return { ok: false, status: 400, data: { message: 'Nenhum arquivo selecionado' } };
 
+        const UPLOAD_MAX_BYTES = 1 * 1024 * 1024; // 1MB
+        if (file.size && file.size > UPLOAD_MAX_BYTES) {
+            return { ok: false, status: 413, data: { message: 'Arquivo muito grande' } };
+        }
+
         const content = await file.text();
         const filename = file.name;
+        // validação de extensão no cliente para evitar envio de arquivos que o backend rejeita
+        const allowed = new Set(['.txt', '.log', '.json', '.md']);
+        const idx = filename.lastIndexOf('.');
+        const ext = idx >= 0 ? filename.slice(idx).toLowerCase() : '';
+        if (!allowed.has(ext)) {
+            return { ok: false, status: 403, data: { message: 'Extensão de arquivo não permitida' } };
+        }
 
         // tenta recuperar o userId do localStorage (o Auth salva o usuário em 'user')
         let userId = null as any;

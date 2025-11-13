@@ -2,7 +2,11 @@ const testsService = require("../services/pathTest.service");
 
 async function saveTestFile(req, res) {
   try {
-    const { userId, filename, content } = req.body;
+    // Preferir userId derivado do token (req.user) quando disponível.
+    const body = req.body || {};
+    const filename = body.filename;
+    const content = body.content;
+    const userId = req.user?.id ?? body.userId ?? null;
 
     if (!userId || !filename || typeof content === "undefined") {
       return res.status(400).json({ message: "userId, filename e content são obrigatórios" });
@@ -13,6 +17,9 @@ async function saveTestFile(req, res) {
 
   } catch (err) {
     console.error("saveTestFile error:", err);
+    if (err && err.status) {
+      return res.status(err.status).json({ message: err.message || 'Erro', detail: err.detail || null });
+    }
     return res.status(500).json({ message: "Erro ao salvar arquivo", detail: err.message });
   }
 }

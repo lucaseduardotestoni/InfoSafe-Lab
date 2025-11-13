@@ -19,3 +19,4 @@ yarn-error.log
 
 Backend/node_modules/
 frontend/node_modules/
+safe-files/
